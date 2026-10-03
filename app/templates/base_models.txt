@@ -1,0 +1,51 @@
+"""
+Auto-generated database models by AegisForge.
+Engineered for SQLAlchemy 2.x declarative syntax.
+"""
+from datetime import datetime
+from app import db
+
+{% for entity in entities %}
+class {{ entity.name }}(db.Model):
+    __tablename__ = "{{ entity.table_name }}"
+
+    # Primary & Standard Fields
+    {% for field in entity.fields %}
+    {{ field.name }} = db.Column(
+        db.{{ field.type }},
+        {%- if field.foreign_key %}
+        db.ForeignKey("{{ field.foreign_key }}"),
+        {%- endif %}
+        {%- if field.primary_key %}
+        primary_key=True,
+        {%- endif %}
+        {%- if field.unique %}
+        unique=True,
+        {%- endif %}
+        nullable={{ field.nullable if field.nullable is defined else True }}
+    )
+    {% endfor %}
+
+    # Relational Mappings
+    {% for rel in entity.relationships %}
+    {% if rel.type == 'one_to_many' %}
+    {{ rel.target_entity.lower() }}s = db.relationship("{{ rel.target_entity }}", back_populates="{{ rel.back_populates or entity.name.lower() }}", cascade="all, delete-orphan")
+    {% elif rel.type == 'many_to_one' %}
+    {{ rel.target_entity.lower() }} = db.relationship("{{ rel.target_entity }}", back_populates="{{ rel.back_populates or (entity.name.lower() ~ 's') }}")
+    {% elif rel.type == 'one_to_one' %}
+    {{ rel.target_entity.lower() }} = db.relationship("{{ rel.target_entity }}", back_populates="{{ rel.back_populates or entity.name.lower() }}", uselist=False)
+    {% endif %}
+    {% endfor %}
+
+    def to_dict(self):
+        """Serializes the entity into a standard dictionary format."""
+        return {
+            {% for field in entity.fields %}
+            "{{ field.name }}": getattr(self, "{{ field.name }}"),
+            {% endfor %}
+        }
+
+    def __repr__(self):
+        return f"<{{ entity.name }} {self.id}>"
+
+{% endfor %}

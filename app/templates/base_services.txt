@@ -1,0 +1,44 @@
+"""
+Auto-generated Service for {{ entity.name }} by AegisForge.
+Enforces business rules and validation logic.
+"""
+from typing import List, Dict, Any
+from app.modules.{{ entity.name.lower() }}.repositories import {{ entity.name }}Repository
+
+class EntityNotFoundError(Exception):
+    pass
+
+class {{ entity.name }}Service:
+    @staticmethod
+    def list_all() -> List[Dict[str, Any]]:
+        records = {{ entity.name }}Repository.get_all()
+        return [record.to_dict() for record in records]
+
+    @staticmethod
+    def get_one(item_id: int) -> Dict[str, Any]:
+        record = {{ entity.name }}Repository.get_by_id(item_id)
+        if not record:
+            raise EntityNotFoundError(f"{{ entity.name }} with id {item_id} not found.")
+        return record.to_dict()
+
+    @staticmethod
+    def create_one(payload: dict) -> Dict[str, Any]:
+        # Strip primary keys if provided manually to prevent overwrite
+        filtered_payload = {k: v for k, v in payload.items() if k != "id"}
+        record = {{ entity.name }}Repository.create(filtered_payload)
+        return record.to_dict()
+
+    @staticmethod
+    def update_one(item_id: int, payload: dict) -> Dict[str, Any]:
+        record = {{ entity.name }}Repository.get_by_id(item_id)
+        if not record:
+            raise EntityNotFoundError(f"{{ entity.name }} with id {item_id} not found.")
+        updated_record = {{ entity.name }}Repository.update(record, payload)
+        return updated_record.to_dict()
+
+    @staticmethod
+    def delete_one(item_id: int) -> None:
+        record = {{ entity.name }}Repository.get_by_id(item_id)
+        if not record:
+            raise EntityNotFoundError(f"{{ entity.name }} with id {item_id} not found.")
+        {{ entity.name }}Repository.delete(record)

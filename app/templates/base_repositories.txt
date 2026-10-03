@@ -1,0 +1,36 @@
+"""
+Auto-generated Repository for {{ entity.name }} by AegisForge.
+Handles all raw database persistence operations.
+"""
+from typing import List, Optional
+from app import db
+from app.models import {{ entity.name }}
+
+class {{ entity.name }}Repository:
+    @staticmethod
+    def get_all() -> List[{{ entity.name }}]:
+        return {{ entity.name }}.query.all()
+
+    @staticmethod
+    def get_by_id(item_id: int) -> Optional[{{ entity.name }}]:
+        return {{ entity.name }}.query.get(item_id)
+
+    @staticmethod
+    def create(data: dict) -> {{ entity.name }}:
+        instance = {{ entity.name }}(**data)
+        db.session.add(instance)
+        db.session.commit()
+        return instance
+
+    @staticmethod
+    def update(instance: {{ entity.name }}, data: dict) -> {{ entity.name }}:
+        for key, value in data.items():
+            if hasattr(instance, key):
+                setattr(instance, key, value)
+        db.session.commit()
+        return instance
+
+    @staticmethod
+    def delete(instance: {{ entity.name }}) -> None:
+        db.session.delete(instance)
+        db.session.commit()

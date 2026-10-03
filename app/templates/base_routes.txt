@@ -1,0 +1,62 @@
+"""
+Auto-generated CRUD Controller/Blueprint for {{ entity.name }} by AegisForge.
+"""
+from flask import Blueprint, request, jsonify
+from app.modules.{{ entity.name.lower() }}.services import {{ entity.name }}Service, EntityNotFoundError
+{% if include_auth %}
+from app.security import token_required
+{% endif %}
+
+{{ entity.name.lower() }}_bp = Blueprint("{{ entity.table_name }}", __name__, url_prefix="/api/{{ entity.table_name }}")
+
+@{{ entity.name.lower() }}_bp.route("", methods=["GET"])
+def get_all():
+    records = {{ entity.name }}Service.list_all()
+    return jsonify(records), 200
+
+@{{ entity.name.lower() }}_bp.route("/<int:item_id>", methods=["GET"])
+def get_one(item_id):
+    try:
+        record = {{ entity.name }}Service.get_one(item_id)
+        return jsonify(record), 200
+    except EntityNotFoundError as e:
+        return jsonify({"error": "Not Found", "message": str(e)}), 404
+
+@{{ entity.name.lower() }}_bp.route("", methods=["POST"])
+{% if include_auth %}
+@token_required
+{% endif %}
+def create():
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Bad Request", "message": "Payload must be valid JSON"}), 400
+    try:
+        new_record = {{ entity.name }}Service.create_one(data)
+        return jsonify(new_record), 201
+    except Exception as e:
+        return jsonify({"error": "Internal Error", "message": str(e)}), 500
+
+@{{ entity.name.lower() }}_bp.route("/<int:item_id>", methods=["PUT"])
+{% if include_auth %}
+@token_required
+{% endif %}
+def update(item_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Bad Request", "message": "Payload must be valid JSON"}), 400
+    try:
+        updated = {{ entity.name }}Service.update_one(item_id, data)
+        return jsonify(updated), 200
+    except EntityNotFoundError as e:
+        return jsonify({"error": "Not Found", "message": str(e)}), 404
+
+@{{ entity.name.lower() }}_bp.route("/<int:item_id>", methods=["DELETE"])
+{% if include_auth %}
+@token_required
+{% endif %}
+def delete(item_id):
+    try:
+        {{ entity.name }}Service.delete_one(item_id)
+        return jsonify({"message": "{{ entity.name }} deleted successfully."}), 200
+    except EntityNotFoundError as e:
+        return jsonify({"error": "Not Found", "message": str(e)}), 404
