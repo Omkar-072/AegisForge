@@ -3,20 +3,16 @@ from flask import Flask, jsonify
 from config import config_by_name
 
 def create_app(config_name=None):
-    """
-    Application Factory pattern. 
-    Dynamically constructs an instance of the Flask application based on environment context.
-    """
     if not config_name:
-        # Fall back to development if not explicitly stated in the environment
         config_name = os.getenv("FLASK_ENV", "development")
-        
+
     app = Flask(__name__)
-    
-    # Load settings from our config object
     app.config.from_object(config_by_name[config_name])
-    
-    # Establish a global, structured health-check route
+
+    # Register the generator module blueprint
+    from app.modules.generator.controllers import generator_bp
+    app.register_blueprint(generator_bp)
+
     @app.route("/health", methods=["GET"])
     def health_check():
         return jsonify({
@@ -25,7 +21,6 @@ def create_app(config_name=None):
             "environment": config_name
         }), 200
 
-    # Global Error Handler for cleaner API responses
     @app.errorhandler(404)
     def resource_not_found(e):
         return jsonify({"error": "Resource not found", "message": str(e)}), 404

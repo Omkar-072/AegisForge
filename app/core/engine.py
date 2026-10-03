@@ -1,11 +1,12 @@
+import io
 import os
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+import zipfile
 from typing import Dict, Any
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 class GenerationEngine:
-    """
-    Renders dynamic source code files from templates using validated schema dictionaries.
-    """
+    """Renders source files from templates and bundles them into an in-memory zip."""
+
     def __init__(self):
         template_dir = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "..", "templates")
@@ -18,95 +19,78 @@ class GenerationEngine:
         )
 
     def render_models(self, schema_data: Dict[str, Any]) -> str:
-        template = self.env.get_template("base_models.txt")
-        return template.render(
+        return self.env.get_template("base_models.txt").render(
             project_name=schema_data.get("project_name"),
             entities=schema_data.get("entities", [])
         )
 
     def render_security(self, schema_data: Dict[str, Any]) -> str:
-        template = self.env.get_template("base_security.txt")
-        return template.render(
+        return self.env.get_template("base_security.txt").render(
             project_name=schema_data.get("project_name")
         )
 
     def render_repository(self, entity: Dict[str, Any]) -> str:
-        template = self.env.get_template("base_repositories.txt")
-        return template.render(entity=entity)
+        return self.env.get_template("base_repositories.txt").render(entity=entity)
 
     def render_service(self, entity: Dict[str, Any]) -> str:
-        template = self.env.get_template("base_services.txt")
-        return template.render(entity=entity)
+        return self.env.get_template("base_services.txt").render(entity=entity)
 
     def render_routes(self, entity: Dict[str, Any], include_auth: bool) -> str:
-        template = self.env.get_template("base_routes.txt")
-        return template.render(entity=entity, include_auth=include_auth)
+        return self.env.get_template("base_routes.txt").render(entity=entity, include_auth=include_auth)
+
+    def render_app_init(self, schema_data: Dict[str, Any]) -> str:
+        return self.env.get_template("base_app_init.txt").render(
+            project_name=schema_data.get("project_name"),
+            entities=schema_data.get("entities", [])
+        )
+
+    def render_entrypoint(self) -> str:
+        return self.env.get_template("base_entrypoint.txt").render()
+
+    def render_requirements(self) -> str:
+        return self.env.get_template("base_requirements.txt").render()
 
     def generate_project_files(self, schema_data: Dict[str, Any]) -> Dict[str, str]:
-        """
-        Orchestrates full code generation.
-        Returns a mapping of target project relative paths to generated source code strings.
-        """
-        generated_manifest = {}
+        """Maps target relative file paths to their rendered text content."""
+        manifest = {}
         include_auth = schema_data.get("include_auth", True)
+        proj_name = schema_data.get("project_name", "app")
 
-        # 1. Global models & security
-        generated_manifest["app/models.py"] = self.render_models(schema_data)
+        # 1. Root-level runtime files
+        manifest["run.py"] = self.render_entrypoint()
+        manifest["requirements.txt"] = self.render_requirements()
+        manifest[".env"] = f"SECRET_KEY=dev-secret-key-change-me\nPORT=5000\nDATABASE_URL=postgresql://postgres:postgres@localhost:5432/{proj_name.lower()}_db\n"
+        manifest["app/__init__.py"] = self.render_app_init(schema_data)
+
+        # 2. Shared core modules
+        manifest["app/models.py"] = self.render_models(schema_data)
         if include_auth:
-            generated_manifest["app/security.py"] = self.render_security(schema_data)
+            manifest["app/security.py"] = self.render_security(schema_data)
 
-        # 2. Per-entity 3-tier modules
+        # 3. 3-tier modules per entity
         for entity in schema_data.get("entities", []):
             module_name = entity["name"].lower()
             base_path = f"app/modules/{module_name}"
-            
-            generated_manifest[f"{base_path}/__init__.py"] = ""
-            generated_manifest[f"{base_path}/repositories.py"] = self.render_repository(entity)
-            generated_manifest[f"{base_path}/services.py"] = self.render_service(entity)
-            generated_manifest[f"{base_path}/routes.py"] = self.render_routes(entity, include_auth)
+            manifest[f"{base_path}/__init__.py"] = ""
+            manifest[f"{base_path}/repositories.py"] = self.render_repository(entity)
+            manifest[f"{base_path}/services.py"] = self.render_service(entity)
+            manifest[f"{base_path}/routes.py"] = self.render_routes(entity, include_auth)
 
-        return generated_manifest
+        return manifest
 
-if __name__ == "__main__":
-    from app.core.parser import SchemaParser
+    def generate_zip_buffer(self, schema_data: Dict[str, Any]) -> io.BytesIO:
+        """
+        Compresses all rendered files into an in-memory ZIP archive.
+        Returns a seeked BytesIO stream ready to be transferred over HTTP.
+        """
+        file_manifest = self.generate_project_files(schema_data)
+        zip_buffer = io.BytesIO()
 
-    mock_input = {
-        "project_name": "AegisStore",
-        "include_auth": True,
-        "entities": [
-            {
-                "name": "User",
-                "table_name": "users",
-                "fields": [
-                    {"name": "id", "type": "Integer", "primary_key": True},
-                    {"name": "email", "type": "String", "unique": True, "nullable": False},
-                    {"name": "is_active", "type": "Boolean", "nullable": False}
-                ],
-                "relationships": [
-                    {"target_entity": "Order", "type": "one_to_many", "back_populates": "user"}
-                ]
-            },
-            {
-                "name": "Order",
-                "table_name": "orders",
-                "fields": [
-                    {"name": "id", "type": "Integer", "primary_key": True},
-                    {"name": "total_price", "type": "Float", "nullable": False},
-                    {"name": "user_id", "type": "Integer", "foreign_key": "users.id", "nullable": False}
-                ],
-                "relationships": [
-                    {"target_entity": "User", "type": "many_to_one", "back_populates": "orders"}
-                ]
-            }
-        ]
-    }
+        # Write each file string into the archive as bytes
+        with zipfile.ZipFile(zip_buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+            for filepath, content in file_manifest.items():
+                zf.writestr(filepath, content)
 
-    parser = SchemaParser(mock_input)
-    validated = parser.validate()
-
-    engine = GenerationEngine()
-    result = engine.generate_project_files(validated)
-
-    print("Generated Files:", list(result.keys()))
-    print("\n=== APP/SECURITY.PY SNIPPET ===")
-    print("\n".join(result["app/security.py"].splitlines()[:25]))
+        # Rewind read pointer to the start so Flask reads from byte 0
+        zip_buffer.seek(0)
+        return zip_buffer

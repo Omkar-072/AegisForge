@@ -1,0 +1,28 @@
+import os
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+
+db = SQLAlchemy()
+
+def create_app():
+    app = Flask(__name__)
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-fallback-secret-key")
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
+        "DATABASE_URL", 
+        "postgresql://postgres:postgres@localhost:5432/{{ project_name.lower() }}_db"
+    )
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+    # Initialize extensions
+    db.init_app(app)
+
+    # Register Blueprints for all entities
+    {% for entity in entities %}
+    from app.modules.{{ entity.name.lower() }}.routes import {{ entity.name.lower() }}_bp
+    app.register_blueprint({{ entity.name.lower() }}_bp)
+    {% endfor %}
+
+    with app.app_context():
+        db.create_all()
+
+    return app
