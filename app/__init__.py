@@ -9,10 +9,16 @@ def create_app(config_name=None):
     app = Flask(__name__)
     app.config.from_object(config_by_name[config_name])
 
-    # Register the generator module blueprint
+    # 1. Register API Generator Blueprint
     from app.modules.generator.controllers import generator_bp
     app.register_blueprint(generator_bp)
 
+    # 2. Register Dashboard UI Blueprint
+    from app.modules.dashboard import dashboard_bp
+    app.register_blueprint(dashboard_bp)
+    
+
+    # Health Check
     @app.route("/health", methods=["GET"])
     def health_check():
         return jsonify({
@@ -21,6 +27,7 @@ def create_app(config_name=None):
             "environment": config_name
         }), 200
 
+    # Error Handlers
     @app.errorhandler(404)
     def resource_not_found(e):
         return jsonify({"error": "Resource not found", "message": str(e)}), 404

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AegisForge Dashboard</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --border: #cfd6dd;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --text: #222222;
+      --text-muted: #666666;
+      --danger: #dc2626;
+      --success: #15803d;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 30px 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 20px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      padding: 18px 20px;
+    }
+
+    h1 {
+      margin: 0 0 6px 0;
+      color: #1f2937;
+      font-size: 28px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      font-size: 14px;
+      color: #444444;
+    }
+
+    input[type="text"], select {
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid #bfc6ce;
+      color: #222222;
+      padding: 9px 10px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    input[type="text"]:focus, select:focus {
+      outline: 1px solid var(--accent);
+      border-color: var(--accent);
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 18px;
+      margin-bottom: 18px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    .entity-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 10px;
+    }
+
+    .entity-header h3 {
+      color: #333333;
+    }
+
+    .btn {
+      background: var(--accent);
+      color: #ffffff;
+      font-weight: 600;
+      border: 1px solid #1d4ed8;
+      padding: 8px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: #ffffff;
+      color: #333333;
+      border: 1px solid #bfc6ce;
+    }
+
+    .btn-secondary:hover {
+      background: #eef2f6;
+    }
+
+    .btn-danger {
+      background: #ffffff;
+      color: var(--danger);
+      border: 1px solid #dc2626;
+      padding: 7px 11px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+      color: #ffffff;
+    }
+
+    .fields-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    .fields-table th,
+    .fields-table td {
+      padding: 8px 6px;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .fields-table th {
+      color: #555555;
+      font-size: 13px;
+      background: #f8fafc;
+    }
+
+    .fields-table td input[type="text"],
+    .fields-table td select {
+      padding: 7px 8px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #444444;
+    }
+
+    .checkbox-label input,
+    .fields-table input[type="checkbox"] {
+      accent-color: var(--accent);
+    }
+
+    .footer-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 22px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    #status {
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    @media (max-width: 700px) {
+      body {
+        padding: 15px;
+      }
+
+      .card {
+        padding: 14px;
+      }
+
+      .footer-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+      }
+
+      .fields-table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>AegisForge</h1>
+      <p style="color: var(--text-muted); margin: 0;">Visual Schema Architect & 3-Tier Flask Generator</p>
+    </header>
+
+    <div class="card">
+      <div class="form-group">
+        <label>Project Name</label>
+        <input type="text" id="projectName" value="NexusAPI" placeholder="e.g. NexusAPI" />
+      </div>
+      <div class="checkbox-label">
+        <input type="checkbox" id="includeAuth" checked />
+        <span>Include JWT Authentication & RBAC Security Layer</span>
+      </div>
+    </div>
+
+    <div id="entitiesContainer"></div>
+
+    <button type="button" class="btn btn-secondary" onclick="addEntity()">+ Add Entity</button>
+
+    <div class="footer-actions">
+      <span id="status"></span>
+      <button type="button" class="btn" onclick="generateProject()">⚡ Forge Backend Project (.zip)</button>
+    </div>
+  </div>
+
+  <script>
+    let entityCount = 0;
+
+    function addEntity(name = "", tableName = "") {
+      entityCount++;
+      const id = entityCount;
+      const html = `
+        <div class="card" id="entity-${id}">
+          <div class="entity-header">
+            <h3 style="margin:0;">Entity Config</h3>
+            <button type="button" class="btn btn-danger" onclick="removeEntity(${id})">Remove</button>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+              <label>Entity Class Name</label>
+              <input type="text" class="entity-name" value="${name}" placeholder="e.g. Customer" oninput="autoSetTable(this, ${id})"/>
+            </div>
+            <div>
+              <label>Database Table Name</label>
+              <input type="text" class="table-name" value="${tableName}" placeholder="e.g. customers"/>
+            </div>
+          </div>
+          
+          <label>Fields</label>
+          <table class="fields-table">
+            <thead>
+              <tr style="color: var(--text-muted); font-size: 0.8rem;">
+                <th>Field Name</th>
+                <th>Type</th>
+                <th>Primary Key</th>
+                <th>Nullable</th>
+                <th>Unique</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="fields-body-${id}">
+              <tr>
+                <td><input type="text" class="f-name" value="id"/></td>
+                <td>
+                  <select class="f-type">
+                    <option value="Integer" selected>Integer</option>
+                    <option value="String">String</option>
+                    <option value="Float">Float</option>
+                    <option value="Boolean">Boolean</option>
+                    <option value="DateTime">DateTime</option>
+                  </select>
+                </td>
+                <td align="center"><input type="checkbox" class="f-pk" checked/></td>
+                <td align="center"><input type="checkbox" class="f-null"/></td>
+                <td align="center"><input type="checkbox" class="f-uniq"/></td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+          <button type="button" class="btn btn-secondary" style="margin-top:0.75rem; font-size:0.8rem;" onclick="addField(${id})">+ Add Field</button>
+        </div>
+      `;
+      document.getElementById("entitiesContainer").insertAdjacentHTML("beforeend", html);
+    }
+
+    function removeEntity(id) {
+      document.getElementById(`entity-${id}`).remove();
+    }
+
+    function autoSetTable(input, id) {
+      const card = document.getElementById(`entity-${id}`);
+      const tableInput = card.querySelector(".table-name");
+      if (input.value) {
+        tableInput.value = input.value.toLowerCase() + "s";
+      }
+    }
+
+    function addField(entityId) {
+      const tbody = document.getElementById(`fields-body-${entityId}`);
+      const row = `
+        <tr>
+          <td><input type="text" class="f-name" placeholder="field_name"/></td>
+          <td>
+            <select class="f-type">
+              <option value="String">String</option>
+              <option value="Integer">Integer</option>
+              <option value="Float">Float</option>
+              <option value="Boolean">Boolean</option>
+              <option value="DateTime">DateTime</option>
+            </select>
+          </td>
+          <td align="center"><input type="checkbox" class="f-pk"/></td>
+          <td align="center"><input type="checkbox" class="f-null" checked/></td>
+          <td align="center"><input type="checkbox" class="f-uniq"/></td>
+          <td><button type="button" class="btn-danger" style="border:none; cursor:pointer;" onclick="this.closest('tr').remove()">✕</button></td>
+        </tr>
+      `;
+      tbody.insertAdjacentHTML("beforeend", row);
+    }
+
+    async function generateProject() {
+      const status = document.getElementById("status");
+      status.style.color = "var(--text-muted)";
+      status.innerText = "Validating and building archive...";
+
+      const projectName = document.getElementById("projectName").value.trim() || "AegisProject";
+      const includeAuth = document.getElementById("includeAuth").checked;
+      const entities = [];
+
+      const cards = document.querySelectorAll("#entitiesContainer .card");
+      cards.forEach(card => {
+        const name = card.querySelector(".entity-name").value.trim();
+        const tableName = card.querySelector(".table-name").value.trim();
+        if (!name || !tableName) return;
+
+        const fields = [];
+        const rows = card.querySelectorAll("tbody tr");
+        rows.forEach(row => {
+          const fName = row.querySelector(".f-name").value.trim();
+          const fType = row.querySelector(".f-type").value;
+          const isPk = row.querySelector(".f-pk").checked;
+          const isNull = row.querySelector(".f-null").checked;
+          const isUniq = row.querySelector(".f-uniq").checked;
+
+          if (fName) {
+            fields.push({
+              name: fName,
+              type: fType,
+              primary_key: isPk,
+              nullable: isNull,
+              unique: isUniq
+            });
+          }
+        });
+
+        entities.push({
+          name: name,
+          table_name: tableName,
+          fields: fields,
+          relationships: []
+        });
+      });
+
+      const payload = {
+        project_name: projectName,
+        include_auth: includeAuth,
+        entities: entities
+      };
+
+      try {
+        const res = await fetch("/api/generator/build", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          status.style.color = "var(--danger)";
+          status.innerText = "Error: " + (err.details || err.message || "Failed to build");
+          return;
+        }
+
+        // Trigger native browser download directly from memory blob
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${projectName}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+
+        status.style.color = "var(--success)";
+        status.innerText = "Project forged and downloaded successfully!";
+      } catch (e) {
+        status.style.color = "var(--danger)";
+        status.innerText = "Network Error: " + e.message;
+      }
+    }
+
+    // Initialize with a default entity
+    addEntity("Customer", "customers");
+    addField(1);
+  </script>
+</body>
+</html>

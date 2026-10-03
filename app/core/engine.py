@@ -59,7 +59,14 @@ class GenerationEngine:
         # 1. Root-level runtime files
         manifest["run.py"] = self.render_entrypoint()
         manifest["requirements.txt"] = self.render_requirements()
-        manifest[".env"] = f"SECRET_KEY=dev-secret-key-change-me\nPORT=5000\nDATABASE_URL=postgresql://postgres:postgres@localhost:5432/{proj_name.lower()}_db\n"
+        manifest[".env"] = (
+            f"SECRET_KEY=dev-secret-key-change-me\n"
+            f"PORT=5000\n"
+            f"# For local testing (no external DB setup required):\n"
+            f"DATABASE_URL=sqlite:///{proj_name.lower()}.db\n"
+            f"# For production PostgreSQL:\n"
+            f"# DATABASE_URL=postgresql://postgres:postgres@localhost:5432/{proj_name.lower()}_db\n"
+        )
         manifest["app/__init__.py"] = self.render_app_init(schema_data)
 
         # 2. Shared core modules
